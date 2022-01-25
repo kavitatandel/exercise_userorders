@@ -1,5 +1,4 @@
 const usersRouters = require('express').Router();
-const { request, response } = require('express');
 const connection = require('../conf');
 
 //get all users
@@ -44,6 +43,23 @@ usersRouters.delete('/:id', (request, response) => {
     connection.query("DELETE FROM users where id=$1", [id])
         .then(data => response.json('deleted'))
         .catch(error => response.sendStatus(404))
+})
+
+//get all the orders of particular user
+usersRouters.get('/:id/orders', (request, response) => {
+    const { id } = request.params
+    connection.query("SELECT orders.id,price,date,CONCAT(first_name,' ',last_name) AS Name from users JOIN orders on users.id=orders.user_id where user_id=$1", [id])
+        .then(data => response.json(data))
+        .catch(error => response.sendStatus(404))
+})
+
+//edit user, active = false, if user has never ordered anything
+usersRouters.put('/:id/check-inactive', (request, response) => {
+    //const active  = false;
+    const { id } = request.params
+    connection.query("UPDATE users SET active=false WHERE id NOT IN (SELECT DISTINCT user_id from orders) and id=$1", [id])
+        .then(data => response.status(201).json(data))
+        .catch(error => response.sendStatus(404));
 })
 
 module.exports = usersRouters;
