@@ -1,6 +1,9 @@
 const usersRouters = require('express').Router();
 const connection = require('../conf');
 
+//library for validation
+const { body, validationResult } = require('express-validator');
+
 //get all users
 usersRouters.get('/', (request, response) => {
     connection.query("Select * from users", (err, results) => {
@@ -19,23 +22,41 @@ usersRouters.get('/:id', (request, response) => {
 })
 
 //create new user
-usersRouters.post('/', (request, response) => {
-    const { first_name, last_name, age } = request.body
-    //const { newUser } = request.body
-    connection.query("INSERT INTO users(first_name,last_name,age) values($1,$2,$3)", [first_name, last_name, Number(age)])
-        .then(data => response.status(201).json(data))
-        .catch(error => response.sendStatus(404));
-})
+usersRouters.post('/',
+    //first_name and last_name should be string and age should be number
+    body('first_name').isString(), body('last_name').isString(), body('age').isNumeric(),
+    (request, response) => {
+        const errors = validationResult(request);
+        if (!errors.isEmpty()) {
+            return response.status(400).json({ errors: errors.array() });
+        }
+
+        //get user data from body
+        const { first_name, last_name, age } = request.body
+
+        //const { newUser } = request.body
+        connection.query("INSERT INTO users(first_name,last_name,age) values($1,$2,$3)", [first_name, last_name, Number(age)])
+            .then(data => response.status(201).json(data))
+            .catch(error => response.sendStatus(404));
+    })
 
 //edit user
-usersRouters.put('/:id', (request, response) => {
-    const { id } = request.params;
-    const { first_name, last_name, age } = request.body
-    //const { newUser } = request.body
-    connection.query("UPDATE users SET first_name=$1,last_name=$2,age=$3 where id=$4", [first_name, last_name, Number(age), id])
-        .then(data => response.status(201).json(data))
-        .catch(error => response.sendStatus(404));
-})
+usersRouters.put('/:id',
+    //first_name and last_name should be string and age should be number
+    body('first_name').isString(), body('last_name').isString(), body('age').isNumeric(),
+    (request, response) => {
+        const errors = validationResult(request);
+        if (!errors.isEmpty()) {
+            return response.status(400).json({ errors: errors.array() });
+        }
+
+        const { id } = request.params;
+        const { first_name, last_name, age } = request.body
+        //const { newUser } = request.body
+        connection.query("UPDATE users SET first_name=$1,last_name=$2,age=$3 where id=$4", [first_name, last_name, Number(age), id])
+            .then(data => response.status(201).json(data))
+            .catch(error => response.sendStatus(404));
+    })
 
 //get users by id
 usersRouters.delete('/:id', (request, response) => {
